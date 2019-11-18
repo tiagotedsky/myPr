@@ -47,7 +47,9 @@ passport.deserializeUser(function(obj, cb) {
 
 
 // Create a new Express application.
-var app = express();
+const app = express();
+const https = require('https');
+const fs = require('fs');
 
 // Configure view engine to render EJS templates.
 app.set('views', __dirname + '/views');
@@ -56,7 +58,16 @@ app.set('view engine', 'ejs');
 // Use application-level middleware for common functionality, including
 app.use(require('body-parser').urlencoded({ extended: true }));
 
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+// ==========================
+// 
 // Define routes.
+// 
+// ==========================
+
 app.get('/', (req, res) => {
   res.render('home', { user: req.user });
 });
@@ -67,7 +78,8 @@ app.get('/login', (req, res)=> {
 
 app.get('/login/github', passport.authenticate('github'));
 
-app.get('/return', passport.authenticate('github', { failureRedirect: '/login' }),
+app.get('/return', 
+  passport.authenticate('github', { failureRedirect: '/login' }),
  (req, res) => {
     res.redirect('/');
   });
@@ -77,4 +89,11 @@ app.get('/profile', require('connect-ensure-login').ensureLoggedIn(),
     res.render('profile', { user: req.user });
   });
 
-app.listen(process.env.PORT || 8080);
+
+https.createServer({
+  key: fs.readFileSync('server.key'),
+  cert: fs.readFileSync('server.cert')
+}, app)
+.listen(process.env.PORT || 3002, () => {
+  console.log(`Example app listening on port ${process.env.PORT}! Go to https://localhost:${process.env.PORT}/`)
+})
