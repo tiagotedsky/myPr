@@ -1,0 +1,31 @@
+{
+  "name": "mypr",
+  "version": "1.0.0",
+  "description": "Check open pull requests assigned to you.",
+  "main": "index.js",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "connect-ensure-login": "^0.1.1",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "passport": "^0.4.0",
+    "passport-github": "^1.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TiagoEsterisco/myPr.git"
+  },
+  "author": "Tiago Sa",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TiagoEsterisco/myPr/issues"
+  },
+  "homepage": "https://github.com/TiagoEsterisco/myPr#readme"
+}
