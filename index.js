@@ -3,19 +3,33 @@ require('dotenv').config();
 
 const express = require('express');
 const passport = require('passport');
-const Strategy = require('passport-github').Strategy;
+const GitHubStrategy = require('passport-github').Strategy;
 
-passport.use(new Strategy({
+const myDb = {
+};
+
+const gitHubConfig = {
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.CLIENT_SECRET,
   callbackURL: '/return'
-},
+  // scope: ['r_emailaddress', 'r_basicprofile'], <---- We need to set this.
+};
+
+passport.use(new GitHubStrategy(gitHubConfig,
 function(accessToken, refreshToken, profile, cb) {
   // In this example, the user's Facebook profile is supplied as the user
   // record.  In a production-quality application, the Facebook profile should
   // be associated with a user record in the application's database, which
   // allows for account linking and authentication with other identity
   // providers.
+
+  const { id } = profile;
+
+  // Find or create user on our DB
+  myDb[id] = {
+    ...profile,
+  };
+
   return cb(null, profile);
 }));
 
@@ -28,12 +42,17 @@ function(accessToken, refreshToken, profile, cb) {
 // from the database when deserializing.  However, due to the fact that this
 // example does not have a database, the complete Facebook profile is serialized
 // and deserialized.
-passport.serializeUser(function(user, cb) {
-  cb(null, user);
+passport.serializeUser((user, done) => {
+
+  console.log('serializeUser ');
+
+  done(null, user);
 });
 
-passport.deserializeUser(function(obj, cb) {
-  cb(null, obj);
+passport.deserializeUser((obj, done) => {
+  console.log('deserializeUser ', obj);
+
+  done(null, obj);
 });
 
 
@@ -68,6 +87,7 @@ app.use(passport.session());
 // 
 // ==========================
 
+// WEB ROUTES
 app.get('/', (req, res) => {
   res.render('home', { user: req.user });
 });
@@ -76,19 +96,30 @@ app.get('/login', (req, res)=> {
   res.render('login');
 });
 
-app.get('/login/github', passport.authenticate('github'));
-
-app.get('/return', 
-  passport.authenticate('github', { failureRedirect: '/login' }),
- (req, res) => {
-    res.redirect('/');
-  });
-
 app.get('/profile', require('connect-ensure-login').ensureLoggedIn(),
  (req, res)=> {
     res.render('profile', { user: req.user });
   });
 
+app.get('/login/github', passport.authenticate('github'));
+
+
+// WEB RETURN 
+app.get('/return', 
+  passport.authenticate('github', { 
+    failureRedirect: '/login', 
+    // successRedirect: '/redirect',  <--- deep link into app
+  }),
+ (req, res) => {
+    res.redirect('/');
+  });
+
+// MOBILE APP RETURN
+// router.get('/redirect', (req, res, next) => {
+//   // you can see what you get back from LinkedIn here:
+//   console.log(req.user.dataValues) 
+//   res.redirect(<deep-link-to-react-native-app>)
+//   })
 
 https.createServer({
   key: fs.readFileSync('server.key'),
