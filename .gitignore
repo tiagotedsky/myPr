@@ -1,5 +1,5 @@
 .env
 node_modules
-server.cert
-server.key
+#server.cert
+#server.key
 myPrMobile/node_modules
