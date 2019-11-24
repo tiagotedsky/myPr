@@ -101,30 +101,44 @@ app.get('/profile', require('connect-ensure-login').ensureLoggedIn(),
     res.render('profile', { user: req.user });
   });
 
-app.get('/login/github', passport.authenticate('github'));
+app.get('/login/github', passport.authenticate('github', (err, user, info) => {
+  if (err) { return next(err) }
+}), async (req, res, next) => {
+  // The request will be redirected to LinkedIn for authentication, so this
+  // function will not be called.
+  console.log('auth/linkedin',req)
+  res.redirect('/')
+  next()
+})
 
 
 // WEB RETURN 
 app.get('/return', 
   passport.authenticate('github', { 
     failureRedirect: '/login', 
-    // successRedirect: '/redirect',  <--- deep link into app
+    successRedirect: '/redirect',
   }),
- (req, res) => {
+ async (req, res) => {
     res.redirect('/');
   });
 
 // MOBILE APP RETURN
-// router.get('/redirect', (req, res, next) => {
-//   // you can see what you get back from LinkedIn here:
-//   console.log(req.user.dataValues) 
-//   res.redirect(<deep-link-to-react-native-app>)
-//   })
+app.get('/redirect', async (req, res, next) => {
+  // you can see what you get back from LinkedIn here:
+  console.log('/redirect -------> ');
+  res.redirect('exp://192.168.1.69:19000')
+})
 
 https.createServer({
   key: fs.readFileSync('server.key'),
   cert: fs.readFileSync('server.cert')
 }, app)
-.listen(process.env.PORT || 3002, () => {
+.listen(process.env.PORT || 80, () => {
   console.log(`Example app listening on port ${process.env.PORT}! Go to https://localhost:${process.env.PORT}/`)
+})
+
+
+app.get('/testDeepLink', async (req, res) => {
+  console.log('/testDeepLink ---> exp://192.168.1.69:19000');
+  res.redirect('exp://192.168.1.69:19000')
 })
