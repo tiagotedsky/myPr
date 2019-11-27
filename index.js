@@ -1,37 +1,40 @@
+require("dotenv").config();
 
-require('dotenv').config();
+const express = require("express");
+const passport = require("passport");
+const GitHubStrategy = require("passport-github").Strategy;
 
-const express = require('express');
-const passport = require('passport');
-const GitHubStrategy = require('passport-github').Strategy;
-
-const myDb = {
-};
+const myDb = {};
 
 const gitHubConfig = {
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.CLIENT_SECRET,
-  callbackURL: '/return'
+  callbackURL: "/return"
   // scope: ['r_emailaddress', 'r_basicprofile'], <---- We need to set this.
 };
 
-passport.use(new GitHubStrategy(gitHubConfig,
-function(accessToken, refreshToken, profile, cb) {
-  // In this example, the user's Facebook profile is supplied as the user
-  // record.  In a production-quality application, the Facebook profile should
-  // be associated with a user record in the application's database, which
-  // allows for account linking and authentication with other identity
-  // providers.
+passport.use(
+  new GitHubStrategy(gitHubConfig, function(
+    accessToken,
+    refreshToken,
+    profile,
+    cb
+  ) {
+    // In this example, the user's Facebook profile is supplied as the user
+    // record.  In a production-quality application, the Facebook profile should
+    // be associated with a user record in the application's database, which
+    // allows for account linking and authentication with other identity
+    // providers.
 
-  const { id } = profile;
+    const { id } = profile;
 
-  // Find or create user on our DB
-  myDb[id] = {
-    ...profile,
-  };
+    // Store this info:
+    // - Id
+    // - access token
 
-  return cb(null, profile);
-}));
+    return cb(null, profile);
+  })
+);
 
 // Configure Passport authenticated session persistence.
 //
@@ -43,102 +46,109 @@ function(accessToken, refreshToken, profile, cb) {
 // example does not have a database, the complete Facebook profile is serialized
 // and deserialized.
 passport.serializeUser((user, done) => {
-
-  console.log('serializeUser ');
+  console.log("serializeUser ");
 
   done(null, user);
 });
 
 passport.deserializeUser((obj, done) => {
-  console.log('deserializeUser ', obj);
+  console.log("deserializeUser ", obj);
 
   done(null, obj);
 });
 
-
 // ==========================
-// 
-// 
-//          EXPRESS 
-// 
-// 
+//
+//
+//          EXPRESS
+//
+//
 // ==========================
-
 
 // Create a new Express application.
 const app = express();
-const https = require('https');
-const fs = require('fs');
+const https = require("https");
+const fs = require("fs");
 
 // Configure view engine to render EJS templates.
-app.set('views', __dirname + '/views');
-app.set('view engine', 'ejs');
+app.set("views", __dirname + "/views");
+app.set("view engine", "ejs");
 
 // Use application-level middleware for common functionality, including
-app.use(require('body-parser').urlencoded({ extended: true }));
+app.use(require("body-parser").urlencoded({ extended: true }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-
 // ==========================
-// 
+//
 // Define routes.
-// 
+//
 // ==========================
 
 // WEB ROUTES
-app.get('/', (req, res) => {
-  res.render('home', { user: req.user });
+app.get("/", (req, res) => {
+  res.render("home", { user: req.user });
 });
 
-app.get('/login', (req, res)=> {
-  res.render('login');
+app.get("/login", (req, res) => {
+  res.render("login");
 });
 
-app.get('/profile', require('connect-ensure-login').ensureLoggedIn(),
- (req, res)=> {
-    res.render('profile', { user: req.user });
-  });
+app.get(
+  "/profile",
+  require("connect-ensure-login").ensureLoggedIn(),
+  (req, res) => {
+    res.render("profile", { user: req.user });
+  }
+);
 
-app.get('/login/github', passport.authenticate('github', (err, user, info) => {
-  if (err) { return next(err) }
-}), async (req, res, next) => {
-  // The request will be redirected to LinkedIn for authentication, so this
-  // function will not be called.
-  console.log('auth/linkedin',req)
-  res.redirect('/')
-  next()
-})
-
-
-// WEB RETURN 
-app.get('/return', 
-  passport.authenticate('github', { 
-    failureRedirect: '/login', 
-    successRedirect: '/redirect',
+app.get(
+  "/login/github",
+  passport.authenticate("github", (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
   }),
- async (req, res) => {
-    res.redirect('/');
+  async (req, res, next) => {
+    // The request will be redirected to Github for authentication, so this
+    // function will not be called.
+    console.log("auth/gitHub", req);
+    res.redirect("/");
+    next();
+  }
+);
+
+// WEB RETURN
+app.get(
+  "/return",
+  passport.authenticate("github", {
+    failureRedirect: "/login"
+  }),
+  async (req, res) => {
+    console.log("req.user ", req.user);
+    res.render("home", { user: req.user });
+  }
+);
+
+// TEST ENDPOINTS
+app.get("/testDeepLink", async (req, res) => {
+  console.log("/testDeepLink ---> exp://192.168.1.69:19000");
+  res.redirect("exp://192.168.1.69:19000");
+});
+
+https
+  .createServer(
+    {
+      key: fs.readFileSync("server.key"),
+      cert: fs.readFileSync("server.cert")
+    },
+    app
+  )
+  .listen(process.env.PORT || 80, () => {
+    console.log(
+      `Example app listening on port ${process.env.PORT}! Go to https://localhost:${process.env.PORT}/`
+    );
   });
 
-// MOBILE APP RETURN
-app.get('/redirect', async (req, res, next) => {
-  // you can see what you get back from LinkedIn here:
-  console.log('/redirect -------> ');
-  res.redirect('exp://192.168.1.69:19000')
-})
-
-https.createServer({
-  key: fs.readFileSync('server.key'),
-  cert: fs.readFileSync('server.cert')
-}, app)
-.listen(process.env.PORT || 80, () => {
-  console.log(`Example app listening on port ${process.env.PORT}! Go to https://localhost:${process.env.PORT}/`)
-})
-
-
-app.get('/testDeepLink', async (req, res) => {
-  console.log('/testDeepLink ---> exp://192.168.1.69:19000');
-  res.redirect('exp://192.168.1.69:19000')
-})
+app.listen("3004", () => console.log(`Example app listening on port 3004!`));

@@ -1,5 +1,7 @@
+<title>Home page</title>
 <% if (!user) { %>
 	<p>Welcome! Please <a href="/login">log in</a>.</p>
 <% } else { %>
 	<p>Hello, <%= user.username %>. View your <a href="/profile">profile</a>.</p>
+	<a href="exp://192.168.1.69:19000?name=<%= user.username %>">Go back to the app</a>
 <% } %>
