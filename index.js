@@ -4,7 +4,15 @@ const express = require("express");
 const passport = require("passport");
 const GitHubStrategy = require("passport-github").Strategy;
 
-const myDb = {};
+const low = require("lowdb");
+const FileSync = require("lowdb/adapters/FileSync");
+const Memory = require("lowdb/adapters/Memory");
+const db = low(
+  process.env.NODE_ENV === "dev" ? new Memory() : new FileSync("db.json")
+);
+
+// Set some defaults (required if your JSON file is empty)
+db.defaults({ users: {} }).write();
 
 const gitHubConfig = {
   clientID: process.env.CLIENT_ID,
@@ -27,11 +35,9 @@ passport.use(
     // providers.
 
     const { id } = profile;
-
-    // Store this info:
-    // - Id
-    // - access token
-
+    
+    db.set(`users[${id}]`, {...profile, accessToken }).write()
+    
     return cb(null, profile);
   })
 );
@@ -103,8 +109,7 @@ app.get(
   }
 );
 
-app.get(
-  "/login/github",
+app.get("/login/github", 
   passport.authenticate("github", (err, user, info) => {
     if (err) {
       return next(err);
@@ -126,15 +131,28 @@ app.get(
     failureRedirect: "/login"
   }),
   async (req, res) => {
-    console.log("req.user ", req.user);
+
+    
     res.render("home", { user: req.user });
   }
 );
 
 // TEST ENDPOINTS
-app.get("/testDeepLink", async (req, res) => {
-  console.log("/testDeepLink ---> exp://192.168.1.69:19000");
-  res.redirect("exp://192.168.1.69:19000");
+
+app.get("/getUserInfo/:id", (req, res) => {  
+  const userInfo = db.get(`users[${req.params.id}]`).write();
+
+  const { 
+    accessToken, 
+    email,
+    _json,
+    _raw,
+    ...userData
+  } = userInfo;
+
+  console.log('userInfo ', userInfo);
+
+  res.json(userData);
 });
 
 https

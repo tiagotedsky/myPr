@@ -1,7 +1,12 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Home page</title>
 <% if (!user) { %>
 	<p>Welcome! Please <a href="/login">log in</a>.</p>
 <% } else { %>
 	<p>Hello, <%= user.username %>. View your <a href="/profile">profile</a>.</p>
-	<a href="exp://192.168.1.69:19000?name=<%= user.username %>">Go back to the app</a>
+	<br />
+	<a href="exp://192.168.1.69:19000?id=<%= user.id %>">Go back to the app</a>
+	<br />
+	<br />
+	<a href="/getUserInfo/776452">Request user info</a>
 <% } %>

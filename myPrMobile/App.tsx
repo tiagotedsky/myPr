@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, Button } from "react-native";
+import { StyleSheet, Text, View, Button, Image } from "react-native";
 import { Linking } from "expo";
 import * as WebBrowser from "expo-web-browser";
 
@@ -7,20 +7,39 @@ interface AuthResult {
   type?: string;
 }
 
-const handleRedirect = async event => {
-  console.log('Event ', event);
-  WebBrowser.dismissBrowser();
-};
-
-const addLinkingListener = () => {
-  Linking.addEventListener("url", handleRedirect);
-};
-const removeLinkingListener = () => {
-  Linking.removeEventListener("url", handleRedirect);
-};
-
 const App = () => {
   const [authResult, setAuthResults] = useState<AuthResult>({});
+  const [userInfo, setUserInfo] = useState({});
+
+  const requestUserInformation = async id => {
+    console.log("id ", id);
+
+    try {
+      const response = await fetch(
+        `http://192.168.1.69:3004/getUserInfo/${id}`
+      );
+      const responseJson = await response.json();
+
+      setUserInfo(responseJson);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleRedirect = async event => {
+    const { queryParams } = Linking.parse(event.url);
+
+    await requestUserInformation(queryParams.id);
+
+    WebBrowser.dismissBrowser();
+  };
+
+  const addLinkingListener = () => {
+    Linking.addEventListener("url", handleRedirect);
+  };
+  const removeLinkingListener = () => {
+    Linking.removeEventListener("url", handleRedirect);
+  };
 
   const handleOAuthLogin = async event => {
     const redirectUrl = await Linking.getInitialURL();
@@ -31,10 +50,8 @@ const App = () => {
     addLinkingListener();
 
     try {
-      const authResult = await WebBrowser.openBrowserAsync(
-        authUrl,
-      );
-      console.log("authResult", authResult);
+      const authResult = await WebBrowser.openBrowserAsync(authUrl);
+      console.log("authResult --->", authResult);
       await setAuthResults(authResult);
     } catch (err) {
       console.log("ERROR:", err);
@@ -42,27 +59,21 @@ const App = () => {
     removeLinkingListener();
   };
 
-  const handleRequest = async () => {
-    try {
-      const response = await fetch("http://192.168.1.69:3004/getUserName");
-      const responseJson = await response.json();
-      console.log(responseJson);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
   return (
     <View style={styles.container}>
-      {authResult.type && authResult.type === "success" ? (
+      {userInfo.id ? (
         <>
-          <Text>Hello there, user</Text>
-          <Button title="Get some info" onPress={handleRequest} />
+          {userInfo.photos.length > 0 && (
+            <Image
+              style={{ width: 50, height: 50 }}
+              source={{uri: userInfo.photos[0].value}}
+            />
+          )}
+          <Text>Hello there, {userInfo.displayName}</Text>
         </>
       ) : (
         <>
           <Text>Login</Text>
-          <Button title="Get some info" onPress={handleRequest} />
           <Button title="Login with GitHub" onPress={handleOAuthLogin} />
         </>
       )}
