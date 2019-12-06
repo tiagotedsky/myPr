@@ -8,7 +8,7 @@ const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
 const Memory = require("lowdb/adapters/Memory");
 const db = low(
-  process.env.NODE_ENV === "dev" ? new Memory() : new FileSync("db.json")
+  process.env.NODE_ENV === "dev" ? new Memory() : new FileSync("./db/users.json")
 );
 
 // Set some defaults (required if your JSON file is empty)
