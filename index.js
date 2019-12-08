@@ -83,6 +83,7 @@ app.set("view engine", "ejs");
 
 // Use application-level middleware for common functionality, including
 app.use(require("body-parser").urlencoded({ extended: true }));
+app.use(express.json());
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -133,12 +134,13 @@ app.get(
   }),
   async (req, res) => {
 
-    
     res.render("home", { user: req.user });
   }
 );
 
 app.get("/getUserInfo/:id", (req, res) => {  
+  console.log('/getUserInfo');
+
   const userInfo = db.get(`users[${req.params.id}]`).write();
 
   const { 
@@ -152,7 +154,9 @@ app.get("/getUserInfo/:id", (req, res) => {
   res.json(userData);
 });
 
-app.get("/testing/:id", (req, res) => {
+
+app.get("/listUserRepos/:id", (req, res) => {
+  console.log('/listUserRepos');
   const userInfo = db.get(`users[${req.params.id}]`).write();
   const { accessToken } = userInfo;
 
@@ -165,25 +169,36 @@ app.get("/testing/:id", (req, res) => {
   };
 
   request(options, (error, response, body) => {
-  console.error('error:', error); // Print the error if one occurred
-  console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
-  // console.log('body:', body); // Print the HTML for the Google homepage.
+    if (error) {
+      console.error('error ', error);
+    }
 
+    const repositoryData = JSON.parse(body).map(repository => {
+      return {
+        id: repository.id,
+        name: repository.name,
+        owner: repository.owner.login,
+      };
+    })
 
-  console.log(JSON.parse(body));
-
+    res.json(repositoryData);
+  });
 });
 
 
+app.post("/saveUserRepo", (req, res) => {
+  console.log('/saveUserRepo');
 
-  console.log('hello world');
-  
+  const { owner, repoId, userId } = req.body;
+
+  // Set a user using Lodash shorthand syntax
+  db.set(`users[${userId}].selectedRepository`, {
+    owner,
+    repoId,
+  }).write();
+
   res.json({});
-  
 });
-
-
-
 
 https
   .createServer(
